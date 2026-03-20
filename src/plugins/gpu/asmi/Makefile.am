@@ -1,14 +1,14 @@
-# Makefile for gpu/rsmi plugin
+# Makefile for gpu/asmi plugin
 
 AUTOMAKE_OPTIONS = foreign
 
 PLUGIN_FLAGS = -module -avoid-version --export-dynamic
 
-AM_CPPFLAGS = -DSLURM_PLUGIN_DEBUG -I$(top_srcdir) $(RSMI_CPPFLAGS)
+AM_CPPFLAGS = -DSLURM_PLUGIN_DEBUG -I$(top_srcdir) $(AMDSMI_CPPFLAGS)
 
-RSMI_SOURCES = gpu_rsmi.c
+AMDSMI_SOURCES = gpu_asmi.c
 
-pkglib_LTLIBRARIES = gpu_rsmi.la
-gpu_rsmi_la_SOURCES = $(RSMI_SOURCES)
-gpu_rsmi_la_LDFLAGS = $(NUMA_LIBS) $(PLUGIN_FLAGS)
-gpu_rsmi_la_LIBADD = ../common/libgpu_common.la
+pkglib_LTLIBRARIES = gpu_asmi.la
+gpu_asmi_la_SOURCES = $(AMDSMI_SOURCES)
+gpu_asmi_la_LDFLAGS = $(NUMA_LIBS) $(PLUGIN_FLAGS)
+gpu_asmi_la_LIBADD = ../common/libgpu_common.la
