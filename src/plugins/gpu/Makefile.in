@@ -92,7 +92,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-@BUILD_RSMI_TRUE@am__append_1 = rsmi
+@BUILD_ASMI_TRUE@am__append_1 = asmi
 @BUILD_NVML_TRUE@am__append_2 = nvml
 @BUILD_ONEAPI_TRUE@am__append_3 = oneapi
 subdir = src/plugins/gpu
@@ -141,6 +141,7 @@ am__aclocal_m4_deps = $(top_srcdir)/auxdir/ax_check_compile_flag.m4 \
 	$(top_srcdir)/auxdir/x_ac_rdkafka.m4 \
 	$(top_srcdir)/auxdir/x_ac_readline.m4 \
 	$(top_srcdir)/auxdir/x_ac_rsmi.m4 \
+	$(top_srcdir)/auxdir/x_ac_asmi.m4 \
 	$(top_srcdir)/auxdir/x_ac_s2n.m4 \
 	$(top_srcdir)/auxdir/x_ac_selinux.m4 \
 	$(top_srcdir)/auxdir/x_ac_setproctitle.m4 \
@@ -208,8 +209,9 @@ am__define_uniq_tagged_files = \
   unique=`for i in $$list; do \
     if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
   done | $(am__uniquify_input)`
-DIST_SUBDIRS = common generic nrt nvidia rsmi nvml oneapi
+DIST_SUBDIRS = common asmi generic nrt nvidia rsmi nvml oneapi
 ACLOCAL = @ACLOCAL@
+AMDSMI_FLAGS = @AMDSMI_FLAGS@
 AMTAR = @AMTAR@
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
 AR = @AR@
