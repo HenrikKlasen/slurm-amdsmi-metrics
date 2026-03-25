@@ -25937,7 +25937,7 @@ fi
   # /opt/rocm/rocm_smi was the default location for before to 5.2.0
   # We will use a for loop to check for both.
   # Unless _x_ac_rsmi_dirs is overwritten with --with-rsmi
-  _x_ac_rsmi_dirs="/opt/rocm /opt/rocm/rocm_smi"
+  _x_ac_rsmi_dirs="/opt/rocm"
 
 
 # Check whether --with-rsmi was given.
@@ -25983,14 +25983,14 @@ else case e in #(
 esac
 fi
 
-      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for rsmi_init in -lrocm_smi64" >&5
-printf %s "checking for rsmi_init in -lrocm_smi64... " >&6; }
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for rsmi_init in -lamd_smi" >&5
+printf %s "checking for rsmi_init in -lamd_smi... " >&6; }
 if test ${ac_cv_lib_rocm_smi64_rsmi_init+y}
 then :
   printf %s "(cached) " >&6
 else case e in #(
   e) ac_check_lib_save_LIBS=$LIBS
-LIBS="-lrocm_smi64  $LIBS"
+LIBS="-lamd_smi  $LIBS"
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -26003,11 +26003,11 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 #ifdef __cplusplus
 extern "C"
 #endif
-char rsmi_init (void);
+char amdsmi_init (void);
 int
 main (void)
 {
-return rsmi_init ();
+return amdsmi_init ();
   ;
   return 0;
 }
@@ -26034,14 +26034,14 @@ else case e in #(
 esac
 fi
 
-      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for rsmi_dev_drm_render_minor_get in -lrocm_smi64" >&5
-printf %s "checking for rsmi_dev_drm_render_minor_get in -lrocm_smi64... " >&6; }
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for rsmi_dev_drm_render_minor_get in -lamd_smi" >&5
+printf %s "checking for rsmi_dev_drm_render_minor_get in -lamd_smi... " >&6; }
 if test ${ac_cv_lib_rocm_smi64_rsmi_dev_drm_render_minor_get+y}
 then :
   printf %s "(cached) " >&6
 else case e in #(
   e) ac_check_lib_save_LIBS=$LIBS
-LIBS="-lrocm_smi64  $LIBS"
+LIBS="-lamd_smi  $LIBS"
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -26054,11 +26054,11 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 #ifdef __cplusplus
 extern "C"
 #endif
-char rsmi_dev_drm_render_minor_get (void);
+char amdsmi_dev_drm_render_minor_get (void);
 int
 main (void)
 {
-return rsmi_dev_drm_render_minor_get ();
+return amdsmi_dev_drm_render_minor_get ();
   ;
   return 0;
 }
@@ -26091,7 +26091,7 @@ fi
         if test "$ac_rsmi_version" = "yes"; then
           ac_rsmi="yes"
 
-printf "%s\n" "#define HAVE_RSMI 1" >>confdefs.h
+printf "%s\n" "#define HAVE_ASMI 1" >>confdefs.h
 
 
           break;
