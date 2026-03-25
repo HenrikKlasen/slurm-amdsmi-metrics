@@ -26001,7 +26001,7 @@ LIBS="-lrocm_smi64  $LIBS"
   # /opt/rocm/rocm_smi was the default location for before to 5.2.0
   # We will use a for loop to check for both.
   # Unless _x_ac_asmi_dirs is overwritten with --with-asmi
-  _x_ac_asmi_dirs="/opt/rocm /opt/rocm/rocm_smi"
+  _x_ac_asmi_dirs="/opt/rocm"
 
 
 # Check whether --with-asmi was given.
@@ -26036,9 +26036,9 @@ printf "%s\n" "" >&6; }
       ASMI_LIB_DIR="$_x_ac_asmi_dir/lib"
       LDFLAGS="-L$ASMI_LIB_DIR"
       { ac_cv_header_rocm_smi_h=; unset ac_cv_header_rocm_smi_h;}
-      { ac_cv_lib_rocm_smi64_amdsmi_init=; unset ac_cv_lib_rocm_smi64_amdsmi_init;}
-      { ac_cv_lib_rocm_smi64_dev_drm_render_minor_get=; unset ac_cv_lib_rocm_smi64_dev_drm_render_minor_get;}
-      ac_fn_c_check_header_compile "$LINENO" "rocm_smi/rocm_smi.h" "ac_cv_header_rocm_smi_rocm_smi_h" "$ac_includes_default"
+      { ac_cv_lib_amd_smi64_amdsmi_init=; unset ac_cv_lib_amd_smi64_amdsmi_init;}
+      { ac_cv_lib_amd_smi64_dev_drm_render_minor_get=; unset ac_cv_lib_amd_smi64_dev_drm_render_minor_get;}
+      ac_fn_c_check_header_compile "$LINENO" "amdsmi/amdsmi.h" "ac_cv_header_rocm_smi_rocm_smi_h" "$ac_includes_default"
 if test "x$ac_cv_header_rocm_smi_rocm_smi_h" = xyes
 then :
   ac_asmi_h=yes
@@ -26047,14 +26047,14 @@ else case e in #(
 esac
 fi
 
-      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for asmi_init in -lrocm_smi64" >&5
-printf %s "checking for amdsmi_init in -lrocm_smi64... " >&6; }
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for amdsmi_init in -lamd_smi64" >&5
+printf %s "checking for amdsmi_init in -lamd_smi64... " >&6; }
 if test ${ac_cv_lib_amd_smi64_amdsmi_init+y}
 then :
   printf %s "(cached) " >&6
 else case e in #(
   e) ac_check_lib_save_LIBS=$LIBS
-LIBS="-lamd_smi  $LIBS"
+LIBS="-lamd_smi64  $LIBS"
  
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
