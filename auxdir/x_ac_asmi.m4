@@ -6,16 +6,14 @@
 #    X_AC_ASMI
 #
 #  DESCRIPTION:
-#    Determine if AMD's RSMI API library exists
+#    Determine if AMD's AMDSMI API library exists
 ##*****************************************************************************
 
 AC_DEFUN([X_AC_ASMI],
 [
 
   # /opt/rocm is the current default location.
-  # /opt/rocm/rocm_smi was the default location for before to 5.2.0
-  # We will use a for loop to check for both.
-  # Unless _x_ac_rsmi_dirs is overwritten with --with-rsmi
+  # Unless _x_ac_asmi_dirs is overwritten with --with-asmi
   _x_ac_asmi_dirs="/opt/rocm"
 
   AC_ARG_WITH(
@@ -24,11 +22,11 @@ AC_DEFUN([X_AC_ASMI],
     [AS_IF([test "x$with_asmi" != xno && test "x$with_asmi" != xyes],
            [_x_ac_asmi_dirs="$with_asmi"])])
 
-  if [test "x$with_asmi" = xno]; then
+  if test "x$with_asmi" = xno; then
      AC_MSG_NOTICE([support for amdsmi disabled])
   else
-    AC_MSG_CHECKING([whether RSMI/ROCm in installed in this system])
-    # Check for RSMI header and library in the default location
+    AC_MSG_CHECKING([whether AMDSMI/ROCm in installed in this system])
+    # Check for AMDSMI header and library in the default location
     # or in the location specified during configure
     #
     # NOTE: Just because this is where we are looking and finding the
@@ -42,40 +40,40 @@ AC_DEFUN([X_AC_ASMI],
       CPPFLAGS="$AMDSMI_FLAGS"
       ASMI_LIB_DIR="$_x_ac_asmi_dir/lib"
       LDFLAGS="-L$ASMI_LIB_DIR"
-      AS_UNSET([ac_cv_header_amd_smi_h])
-      AS_UNSET([ac_cv_lib_amd_smi_rsmi_init])
-      AS_UNSET([ac_cv_lib_amd_smi_dev_drm_render_minor_get])
+      AS_UNSET([ac_cv_header_amdsmi_amdsmi_h])
+      AS_UNSET([ac_cv_lib_amd_smi64_amdsmi_init])
+      AS_UNSET([ac_cv_lib_amd_smi64_amdsmi_dev_drm_render_minor_get])
       AC_CHECK_HEADER([amdsmi/amdsmi.h], [ac_asmi_h=yes], [ac_asmi_h=no])
-      AC_CHECK_LIB([amdsmi], [amdsmi_init], [ac_asmi_l=yes], [ac_asmi_l=no])
-      AC_CHECK_LIB([amdsmi64], [amdsmi_dev_drm_render_minor_get], [ac_asmi_version=yes], [ac_asmi_version=no])
+      AC_CHECK_LIB([amd_smi64], [amdsmi_init], [ac_asmi_l=yes], [ac_asmi_l=no])
+      AC_CHECK_LIB([amd_smi64], [amdsmi_dev_drm_render_minor_get], [ac_asmi_version=yes], [ac_asmi_version=no])
       CPPFLAGS="$cppflags_save"
       LDFLAGS="$ldflags_save"
       if test "$ac_asmi_l" = "yes" && test "$ac_asmi_h" = "yes"; then
         if test "$ac_asmi_version" = "yes"; then
-          ac_rsmi="yes"
-          AC_DEFINE(HAVE_ASMI, 1, [Define to 1 if RSMI library found])
+          ac_asmi="yes"
+          AC_DEFINE(HAVE_ASMI, 1, [Define to 1 if AMDSMI library found])
 	  AC_SUBST(AMDSMI_FLAGS)
           break;
         fi
       fi
     done
 
-    # Only print errors/wanrings if both _x_ac_rsmi_dirs don't work
+    # Only print errors/warnings if both _x_ac_asmi_dirs don't work
     if test "$ac_asmi_l" = "yes" && test "$ac_asmi_h" = "yes"; then
       if test "$ac_asmi_version" != "yes"; then
         if test -z "$with_asmi"; then
-          AC_MSG_WARN([upgrade to newer version of ROCm/rsmi])
+          AC_MSG_WARN([upgrade to newer version of ROCm/amdsmi])
         else
-          AC_MSG_ERROR([upgrade to newer version of ROCm/rsmi])
+          AC_MSG_ERROR([upgrade to newer version of ROCm/amdsmi])
         fi
       fi
     else
       if test -z "$with_asmi"; then
-        AC_MSG_WARN([unable to locate librocm_smi64.so and/or amdsmi.h])
+        AC_MSG_WARN([unable to locate libamd_smi64.so and/or amdsmi.h])
       else
-        AC_MSG_ERROR([unable to locate libamdsmi.so and/or amdsmi.h])
+        AC_MSG_ERROR([unable to locate libamd_smi64.so and/or amdsmi.h])
       fi
     fi
   fi
-  AM_CONDITIONAL(BUILD_RSMI, test "$ac_asmi" = "yes")
+  AM_CONDITIONAL(BUILD_ASMI, test "$ac_asmi" = "yes")
 ])
