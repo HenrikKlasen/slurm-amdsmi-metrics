@@ -768,9 +768,6 @@ ONEAPI_CPPFLAGS
 BUILD_RSMI_FALSE
 BUILD_RSMI_TRUE
 RSMI_CPPFLAGS
-BUILD_ASMI_FALSE
-BUILD_ASMI_TRUE
-AMDSMI_FLAGS
 BUILD_NVML_FALSE
 BUILD_NVML_TRUE
 NVML_CPPFLAGS
@@ -1037,7 +1034,6 @@ with_lz4
 with_hwloc
 with_nvml
 with_rsmi
-with_asmi
 with_oneapi
 with_pmix
 with_freeipmi
@@ -1807,7 +1803,6 @@ Optional Packages:
   --with-hwloc=PATH       Specify path to hwloc installation
   --with-nvml=PATH        Specify path to CUDA installation
   --with-rsmi=PATH        Specify path to rsmi installation
-  --with-asmi=PATH        Specify path to amdsmi installation
   --with-oneapi=PATH      Specify path to oneAPI installation
   --with-pmix=PATH        Specify path to pmix installation(s). Multiple
                           version directories can be ':' delimited.
@@ -25996,66 +25991,6 @@ then :
 else case e in #(
   e) ac_check_lib_save_LIBS=$LIBS
 LIBS="-lrocm_smi64  $LIBS"
-
-# /opt/rocm is the current default location.
-  # /opt/rocm/rocm_smi was the default location for before to 5.2.0
-  # We will use a for loop to check for both.
-  # Unless _x_ac_asmi_dirs is overwritten with --with-asmi
-  _x_ac_asmi_dirs="/opt/rocm"
-
-
-# Check whether --with-asmi was given.
-if test ${with_asmi+y}
-then :
-  withval=$with_asmi; if test "x$with_asmi" != xno && test "x$with_asmi" != xyes
-then :
-  _x_ac_asmi_dirs="$with_asmi"
-fi
-fi
-
-
-  if test "x$with_asmi" = xno; then
-     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: support for asmi disabled" >&5
-printf "%s\n" "$as_me: support for asmi disabled" >&6;}
-  else
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether AMDSMI/ROCm in installed in this system" >&5
-printf %s "checking whether AMDSMI/ROCm in installed in this system... " >&6; }
-    # Check for RSMI header and library in the default location
-    # or in the location specified during configure
-    #
-    # NOTE: Just because this is where we are looking and finding the
-    # libraries they must be in the ldcache when running as that is what the
-    # card will be using.
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: " >&5
-printf "%s\n" "" >&6; }
-    for _x_ac_asmi_dir in $_x_ac_asmi_dirs; do
-      cppflags_save="$CPPFLAGS"
-      ldflags_save="$LDFLAGS"
-      AMDSMI_FLAGS="-I$_x_ac_asmi_dir/include"
-      CPPFLAGS="$AMDSMI_FLAGS"
-      ASMI_LIB_DIR="$_x_ac_asmi_dir/lib"
-      LDFLAGS="-L$ASMI_LIB_DIR"
-      { ac_cv_header_rocm_smi_h=; unset ac_cv_header_rocm_smi_h;}
-      { ac_cv_lib_amd_smi64_amdsmi_init=; unset ac_cv_lib_amd_smi64_amdsmi_init;}
-      { ac_cv_lib_amd_smi64_dev_drm_render_minor_get=; unset ac_cv_lib_amd_smi64_dev_drm_render_minor_get;}
-      ac_fn_c_check_header_compile "$LINENO" "amdsmi/amdsmi.h" "ac_cv_header_rocm_smi_rocm_smi_h" "$ac_includes_default"
-if test "x$ac_cv_header_rocm_smi_rocm_smi_h" = xyes
-then :
-  ac_asmi_h=yes
-else case e in #(
-  e) ac_asmi_h=no ;;
-esac
-fi
-
-      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for amdsmi_init in -lamd_smi64" >&5
-printf %s "checking for amdsmi_init in -lamd_smi64... " >&6; }
-if test ${ac_cv_lib_amd_smi64_amdsmi_init+y}
-then :
-  printf %s "(cached) " >&6
-else case e in #(
-  e) ac_check_lib_save_LIBS=$LIBS
-LIBS="-lamd_smi64  $LIBS"
- 
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -26068,11 +26003,11 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 #ifdef __cplusplus
 extern "C"
 #endif
-char amdsmi_init (void);
+char rsmi_init (void);
 int
 main (void)
 {
-return amdsmi_init ();
+return rsmi_init ();
   ;
   return 0;
 }
@@ -33527,3 +33462,5 @@ if test -n "$ac_unrecognized_opts" && test "$enable_option_checking" != no; then
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: unrecognized options: $ac_unrecognized_opts" >&5
 printf "%s\n" "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
+
+
