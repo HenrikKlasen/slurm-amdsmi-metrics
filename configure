@@ -25974,7 +25974,7 @@ printf "%s\n" "" >&6; }
       { ac_cv_header_rocm_smi_h=; unset ac_cv_header_rocm_smi_h;}
       { ac_cv_lib_rocm_smi64_rsmi_init=; unset ac_cv_lib_rocm_smi64_rsmi_init;}
       { ac_cv_lib_rocm_smi64_dev_drm_render_minor_get=; unset ac_cv_lib_rocm_smi64_dev_drm_render_minor_get;}
-      ac_fn_c_check_header_compile "$LINENO" "rocm_smi/rocm_smi.h" "ac_cv_header_rocm_smi_rocm_smi_h" "$ac_includes_default"
+      ac_fn_c_check_header_compile "$LINENO" "amd_smi/amdsmi.h" "ac_cv_header_rocm_smi_rocm_smi_h" "$ac_includes_default"
 if test "x$ac_cv_header_rocm_smi_rocm_smi_h" = xyes
 then :
   ac_rsmi_h=yes
