@@ -718,33 +718,69 @@ static void _amdsmi_get_version(char *version, unsigned int len)
  *
  * device_count	(OUT) Number of available GPU devices
  */
+/*
+ * Get the total # of GPUs in the system
+ *
+ * device_count (OUT) Number of available GPU devices
+ */
 extern void gpu_p_get_device_count(uint32_t *device_count)
 {
-	const char *status_string;
-	uint32_t socket_count = 0;
-	amdsmi_socket_handle socket_handles[32] = {0};
-	uint32_t processor_count = 0;
-	amdsmi_processor_handle processor_handles[256] = {0};
-	amdsmi_status_t amdsmi_rc = amdsmi_get_socket_handles(&socket_count, socket_handles);
+    const char *status_string;
+    uint32_t socket_count = 0;
+    amdsmi_socket_handle socket_handles[32] = {0};
+    uint32_t processor_count = 0;
+    amdsmi_processor_handle processor_handles[256] = {0};
+    amdsmi_status_t amdsmi_rc;
 
-	*device_count = 0;
-	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
-		amdsmi_rc = amdsmi_status_code_to_string(amdsmi_rc, &status_string);
-		error("AMDSMI: Failed to get socket count: %s", status_string);
-		return;
-	}
+    *device_count = 0;
 
-	for (uint32_t i = 0; i < socket_count; i++) {
-		processor_count = 256;
-		amdsmi_rc = amdsmi_get_processor_handles(socket_handles[i], &processor_count, processor_handles);
-		if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
-			amdsmi_rc = amdsmi_status_code_to_string(amdsmi_rc, &status_string);
-			error("AMDSMI: Failed to get processor count: %s", status_string);
-			continue;
-		}
-		*device_count += processor_count;
-	}
+    /* First try the socket/processor enumeration (older API behavior) */
+    amdsmi_rc = amdsmi_get_socket_handles(&socket_count, socket_handles);
+    if (amdsmi_rc == AMDSMI_STATUS_SUCCESS && socket_count > 0) {
+        for (uint32_t i = 0; i < socket_count; i++) {
+            processor_count = 256;
+            amdsmi_rc = amdsmi_get_processor_handles(socket_handles[i],
+                                 &processor_count,
+                                 processor_handles);
+            if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
+                amdsmi_status_code_to_string(amdsmi_rc, &status_string);
+                error("AMDSMI: Failed to get processor count: %s",
+                      status_string);
+                continue;
+            }
+            *device_count += processor_count;
+        }
+        if (*device_count > 0)
+            return;
+    }
+
+    /*
+     * Fallback for ROCm 6.x:
+     * Enumerate GPUs by device index using amdsmi_get_gpu_device_bdf().
+     * We simply probe indices starting at 0 until the first failure.
+     */
+    debug("AMDSMI: Falling back to index-based GPU enumeration");
+    for (uint32_t idx = 0; idx < 256; idx++) {
+        amdsmi_bdf_t bdf = {0};
+
+        amdsmi_rc = amdsmi_get_gpu_device_bdf(idx, &bdf);
+        if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
+            /* Stop at first failure; assume indices are dense [0..N-1] */
+            break;
+        }
+        (*device_count)++;
+    }
+
+    if (*device_count == 0) {
+        amdsmi_status_code_to_string(amdsmi_rc, &status_string);
+        error("AMDSMI: Could not detect any GPUs (last error: %s)",
+              status_string);
+    } else {
+        debug("AMDSMI: Detected %u GPU(s) via index-based enumeration",
+              *device_count);
+    }
 }
+
 
 /*
  * Get the name of the GPU
