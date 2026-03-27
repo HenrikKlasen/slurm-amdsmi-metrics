@@ -95,11 +95,15 @@ static int gpuutil_pos = -1;
 
 static bool get_usage = true;
 
+/* Processor handles cache for AMD-SMI API */
+static amdsmi_processor_handle processor_handles[256] = {0};
+static uint32_t processor_handle_count = 0;
+
 static void _amdsmi_get_version(char *version, unsigned int len);
 static void _amdsmi_get_driver(char *driver, unsigned int len);
 
 /*
- * Initialize the amd-smi library.
+ * Initialize the amd-smi library and cache processor handles.
  */
 static void _amdsmi_init()
 {
@@ -109,6 +113,8 @@ static void _amdsmi_init()
 	const char *status_string;
 	char version[AMDSMI_STRING_BUFFER_SIZE];
 	char driver[AMDSMI_STRING_BUFFER_SIZE];
+	uint32_t socket_count = 0;
+	amdsmi_socket_handle socket_handles[32] = {0};
 
 	if (init_pid == my_pid) /* Already inited */
 		return;
@@ -121,11 +127,25 @@ static void _amdsmi_init()
 	END_TIMER;
 	debug3("amdsmi_init() took %s", TIMER_STR());
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
-		amdsmi_status_string(amdsmi_rc, &status_string);
+		amdsmi_status_code_to_string(amdsmi_rc, &status_string);
 		error("Failed to initialize amdsmi: %s",
 		      status_string);
 	} else
 		debug2("Successfully initialized amdsmi");
+
+	/* Cache processor handles for use in frequency/power functions */
+	amdsmi_rc = amdsmi_get_socket_handles(&socket_count, socket_handles);
+	if (amdsmi_rc == AMDSMI_STATUS_SUCCESS) {
+		processor_handle_count = 0;
+		for (uint32_t i = 0; i < socket_count && processor_handle_count < 256; i++) {
+			uint32_t proc_count = 256 - processor_handle_count;
+			amdsmi_rc = amdsmi_get_processor_handles(socket_handles[i], 
+					&proc_count, &processor_handles[processor_handle_count]);
+			if (amdsmi_rc == AMDSMI_STATUS_SUCCESS) {
+				processor_handle_count += proc_count;
+			}
+		}
+	}
 
 	_amdsmi_get_driver(driver, AMDSMI_STRING_BUFFER_SIZE);
 	_amdsmi_get_version(version, AMDSMI_STRING_BUFFER_SIZE);
@@ -168,16 +188,20 @@ static bool _amdsmi_get_mem_freqs(uint32_t dv_ind, uint32_t *mem_freqs_size,
 	amdsmi_status_t amdsmi_rc;
 	amdsmi_frequencies_t amdsmi_freqs;
 
+	if (dv_ind >= processor_handle_count) {
+		error("AMDSMI: Invalid device index %u (max %u)", dv_ind, processor_handle_count);
+		return false;
+	}
+
 	DEF_TIMERS;
 	START_TIMER;
-	amdsmi_rc = amdsmi_dev_gpu_clk_freq_get(
-		dv_ind, AMDSMI_CLK_TYPE_MEM, &amdsmi_freqs);
+	amdsmi_rc = amdsmi_get_clk_freq(processor_handles[dv_ind], AMDSMI_CLK_TYPE_MEM, &amdsmi_freqs);
 	END_TIMER;
-	debug3("amdsmi_dev_gpu_clk_freq_get() took %s",
+	debug3("amdsmi_get_clk_freq() took %s",
 	       TIMER_STR());
 
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
-		amdsmi_rc = amdsmi_status_string(amdsmi_rc, &status_string);
+		amdsmi_rc = amdsmi_status_code_to_string(amdsmi_rc, &status_string);
 		error("AMDSMI: Failed to get memory frequencies error: %s",
 		      status_string);
 		return false;
@@ -207,16 +231,20 @@ static bool _amdsmi_get_gfx_freqs(uint32_t dv_ind, uint32_t *gfx_freqs_size,
 	amdsmi_status_t amdsmi_rc;
 	amdsmi_frequencies_t amdsmi_freqs;
 
+	if (dv_ind >= processor_handle_count) {
+		error("AMDSMI: Invalid device index %u (max %u)", dv_ind, processor_handle_count);
+		return false;
+	}
+
 	DEF_TIMERS;
 	START_TIMER;
-	amdsmi_rc = amdsmi_dev_gpu_clk_freq_get(
-		dv_ind, AMDSMI_CLK_TYPE_SYS, &amdsmi_freqs);
+	amdsmi_rc = amdsmi_get_clk_freq(processor_handles[dv_ind], AMDSMI_CLK_TYPE_SYS, &amdsmi_freqs);
 	END_TIMER;
-	debug3("amdsmi_dev_gpu_clk_freq_get() took %s", TIMER_STR());
+	debug3("amdsmi_get_clk_freq() took %s", TIMER_STR());
 
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
-		amdsmi_rc = amdsmi_status_string(amdsmi_rc, &status_string);
-		error("amdSMI: Failed to get graphics frequencies error: %s",
+		amdsmi_rc = amdsmi_status_code_to_string(amdsmi_rc, &status_string);
+		error("AMDSMI: Failed to get graphics frequencies error: %s",
 		      status_string);
 		return false;
 	}
@@ -364,7 +392,7 @@ static bool _amdsmi_set_freqs(uint32_t dv_ind, uint64_t mem_bitmask,
 	debug3("amdsmi_dev_gpu_clk_freq_set(0x%lx) for memory took %s",
 	       mem_bitmask, TIMER_STR());
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
-		amdsmi_rc = amdsmi_status_string(amdsmi_rc, &status_string);
+		amdsmi_rc = amdsmi_status_code_to_string(amdsmi_rc, &status_string);
 		error("AMDSMI: Failed to set memory frequency GPU %u error: %s",
 		      dv_ind, status_string);
 		return false;
@@ -377,7 +405,7 @@ static bool _amdsmi_set_freqs(uint32_t dv_ind, uint64_t mem_bitmask,
 	       gfx_bitmask, TIMER_STR());
 	END_TIMER;
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
-		amdsmi_rc = amdsmi_status_string(amdsmi_rc, &status_string);
+		amdsmi_rc = amdsmi_status_code_to_string(amdsmi_rc, &status_string);
 		error("AMDSMI: Failed to set graphics frequency GPU %u error: %s",
 		      dv_ind, status_string);
 		return false;
@@ -406,7 +434,7 @@ static bool _amdsmi_reset_freqs(uint32_t dv_ind)
 	END_TIMER;
 	debug3("amdsmi_dev_perf_level_set() took %s", TIMER_STR());
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
-		amdsmi_rc = amdsmi_status_string(amdsmi_rc, &status_string);
+		amdsmi_rc = amdsmi_status_code_to_string(amdsmi_rc, &status_string);
 		error("AMDSMI: Failed to reset frequencies error: %s",
 		      status_string);
 		return false;
@@ -431,6 +459,11 @@ static uint32_t _amdsmi_get_freq(uint32_t dv_ind, amdsmi_clk_type_t type)
 	amdsmi_frequencies_t amdsmi_freqs;
 	char *type_str = "unknown";
 
+	if (dv_ind >= processor_handle_count) {
+		error("AMDSMI: Invalid device index %u (max %u)", dv_ind, processor_handle_count);
+		return 0;
+	}
+
 	DEF_TIMERS;
 
 	switch (type) {
@@ -446,11 +479,11 @@ static uint32_t _amdsmi_get_freq(uint32_t dv_ind, amdsmi_clk_type_t type)
 	}
 
 	START_TIMER;
-	amdsmi_rc = amdsmi_dev_gpu_clk_freq_get(dv_ind, type, &amdsmi_freqs);
+	amdsmi_rc = amdsmi_get_clk_freq(processor_handles[dv_ind], type, &amdsmi_freqs);
 	END_TIMER;
-	debug3("amdsmi_dev_gpu_clk_freq_get(%s) took %s", type_str, TIMER_STR());
+	debug3("amdsmi_get_clk_freq(%s) took %s", type_str, TIMER_STR());
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
-		amdsmi_rc = amdsmi_status_string(amdsmi_rc, &status_string);
+		amdsmi_rc = amdsmi_status_code_to_string(amdsmi_rc, &status_string);
 		error("AMDSMI: Failed to get the GPU frequency type %s, error: %s",
 		      type_str, status_string);
 		return 0;
@@ -652,10 +685,10 @@ static void _amdsmi_get_version(char *version, unsigned int len)
 {
 	const char *status_string;
 	amdsmi_version_t amdsmi_version;
-	amdsmi_status_t amdsmi_rc = amdsmi_version_get(&amdsmi_version);
+	amdsmi_status_t amdsmi_rc = amdsmi_get_lib_version(&amdsmi_version);
 
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
-		amdsmi_rc = amdsmi_status_string(amdsmi_rc, &status_string);
+		amdsmi_rc = amdsmi_status_code_to_string(amdsmi_rc, &status_string);
 		error("AMDSMI: Failed to get the version error: %s",
 		      status_string);
 		version[0] = '\0';
@@ -677,12 +710,28 @@ static void _amdsmi_get_version(char *version, unsigned int len)
 extern void gpu_p_get_device_count(uint32_t *device_count)
 {
 	const char *status_string;
-	amdsmi_status_t amdsmi_rc = amdsmi_num_monitor_devices(device_count);
+	uint32_t socket_count = 0;
+	amdsmi_socket_handle socket_handles[32] = {0};
+	uint32_t processor_count = 0;
+	amdsmi_processor_handle processor_handles[256] = {0};
+	amdsmi_status_t amdsmi_rc = amdsmi_get_socket_handles(&socket_count, socket_handles);
 
+	*device_count = 0;
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
-		amdsmi_rc = amdsmi_status_string(amdsmi_rc, &status_string);
-		error("AMDSMI: Failed to get device count: %s", status_string);
-		*device_count = 0;
+		amdsmi_rc = amdsmi_status_code_to_string(amdsmi_rc, &status_string);
+		error("AMDSMI: Failed to get socket count: %s", status_string);
+		return;
+	}
+
+	for (uint32_t i = 0; i < socket_count; i++) {
+		processor_count = 256;
+		amdsmi_rc = amdsmi_get_processor_handles(socket_handles[i], &processor_count, processor_handles);
+		if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
+			amdsmi_rc = amdsmi_status_code_to_string(amdsmi_rc, &status_string);
+			error("AMDSMI: Failed to get processor count: %s", status_string);
+			continue;
+		}
+		*device_count += processor_count;
 	}
 }
 
@@ -697,14 +746,16 @@ static void _amdsmi_get_device_name(uint32_t dv_ind, char *device_name,
 				  unsigned int size)
 {
 	const char *status_string;
-	amdsmi_status_t amdsmi_rc = amdsmi_dev_name_get(dv_ind, device_name, size);
+	amdsmi_gpu_asic_info_t asic_info = {0};
+	amdsmi_status_t amdsmi_rc = amdsmi_get_gpu_asic_info(dv_ind, &asic_info);
 
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
-		amdsmi_rc = amdsmi_status_string(amdsmi_rc, &status_string);
+		amdsmi_rc = amdsmi_status_code_to_string(amdsmi_rc, &status_string);
 		error("AMDSMI: Failed to get name of the GPU: %s", status_string);
+		return;
 	}
-	gpu_common_underscorify_tolower(device_name);
-}
+	strncpy(device_name, asic_info.asic_type, size - 1);
+	device_name[size - 1] = '\0';
 
 /*
  * Get the brand of the GPU
@@ -717,15 +768,17 @@ static void _amdsmi_get_device_brand(uint32_t dv_ind, char *device_brand,
 				   unsigned int size)
 {
 	const char *status_string;
-	amdsmi_status_t amdsmi_rc = amdsmi_dev_brand_get(dv_ind, device_brand, size);
+	amdsmi_gpu_asic_info_t asic_info = {0};
+	amdsmi_status_t amdsmi_rc = amdsmi_get_gpu_asic_info(dv_ind, &asic_info);
 
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
-		amdsmi_rc = amdsmi_status_string(amdsmi_rc, &status_string);
+		amdsmi_rc = amdsmi_status_code_to_string(amdsmi_rc, &status_string);
 		error("AMDSMI: Failed to get brand of the GPU: %s",
 		      status_string);
+		return;
 	}
-	gpu_common_underscorify_tolower(device_brand);
-}
+	strncpy(device_brand, asic_info.asic_type, size - 1);
+	device_brand[size - 1] = '\0';
 
 /*
  * Retrieves minor number of the render device. Each AMD GPU will have a device node file
@@ -738,13 +791,16 @@ static void _amdsmi_get_device_minor_number(uint32_t dv_ind,
 					  unsigned int *minor)
 {
 	const char *status_string;
-	amdsmi_status_t amdsmi_rc = amdsmi_get_gpu_device_bdf(dv_ind, minor);
+	amdsmi_bdf_t bdf = {0};
+	amdsmi_status_t amdsmi_rc = amdsmi_get_gpu_device_bdf(dv_ind, &bdf);
 
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
-		amdsmi_rc = amdsmi_status_string(amdsmi_rc, &status_string);
+		amdsmi_rc = amdsmi_status_code_to_string(amdsmi_rc, &status_string);
 		error("AMDSMI: Failed to get minor number of GPU: %s",
 		      status_string);
+		return;
 	}
+	*minor = bdf.bdf;
 }
 
 /*
@@ -756,13 +812,16 @@ static void _amdsmi_get_device_minor_number(uint32_t dv_ind,
 static void _amdsmi_get_device_pci_info(uint32_t dv_ind, amdsmiPciInfo_t *pci)
 {
 	const char *status_string;
-	amdsmi_status_t amdsmi_rc = amdsmi_get_gpu_bdf_id(dv_ind, &pci->bdfid);
+	amdsmi_bdf_t bdf = {0};
+	amdsmi_status_t amdsmi_rc = amdsmi_get_gpu_device_bdf(dv_ind, &bdf);
 
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
-		amdsmi_rc = amdsmi_status_string(amdsmi_rc, &status_string);
+		amdsmi_rc = amdsmi_status_code_to_string(amdsmi_rc, &status_string);
 		error("AMDSMI: Failed to get PCI Info of the GPU: %s",
 		      status_string);
+		return;
 	}
+	pci->bdfid = bdf.bdf;
 }
 
 /*
@@ -774,10 +833,10 @@ static void _amdsmi_get_device_pci_info(uint32_t dv_ind, amdsmiPciInfo_t *pci)
 static void _amdsmi_get_device_unique_id(uint32_t dv_ind, uint64_t *id)
 {
 	const char *status_string;
-	amdsmi_status_t amdsmi_rc = amdsmi_dev_unique_id_get(dv_ind, id);
+	amdsmi_status_t amdsmi_rc = amdsmi_get_gpu_device_uuid(dv_ind, id);
 
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
-		amdsmi_rc = amdsmi_status_string(amdsmi_rc, &status_string);
+		amdsmi_rc = amdsmi_status_code_to_string(amdsmi_rc, &status_string);
 		error("AMDSMI: Failed to get Unique ID of the GPU: %s",
 		      status_string);
 	}
@@ -787,14 +846,14 @@ static bitstr_t *_amdsmi_get_device_cpu_mask(uint32_t dv_ind)
 {
 	bitstr_t *cpu_aff_mac_bitstr = NULL;
 #ifdef HAVE_NUMA
-	uint32_t nnid = 1;
+	uint32_t nnid = 0;
 	uint16_t maxcpus = conf->sockets * conf->cores * conf->threads;
 	struct bitmask *collective;
-	amdsmi_status_t amdsmi_rc =	amdsmi_topo_get_numa_node_number(dv_ind, &nnid);
+	amdsmi_status_t amdsmi_rc = amdsmi_get_gpu_node_number(dv_ind, &nnid);
 
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
 		const char *status_string;
-		amdsmi_rc = amdsmi_status_string(amdsmi_rc, &status_string);
+		amdsmi_rc = amdsmi_status_code_to_string(amdsmi_rc, &status_string);
 		error("AMDSMI: Failed to get numa affinity of the GPU: %s",
 		      status_string);
 		return NULL;
@@ -1012,17 +1071,17 @@ extern int gpu_p_energy_read(uint32_t dv_ind, gpu_status_t *gpu)
 {
 	const char *status_string;
 	uint64_t curr_milli_watts;
-	amdsmi_status_t amdsmi_rc = amdsmi_dev_power_ave_get(
-		dv_ind, 0, &curr_milli_watts);
+	amdsmi_power_info_t power_info = {0};
+	amdsmi_status_t amdsmi_rc = amdsmi_get_power_info(dv_ind, &power_info);
 
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
-		amdsmi_rc = amdsmi_status_string(amdsmi_rc, &status_string);
+		amdsmi_rc = amdsmi_status_code_to_string(amdsmi_rc, &status_string);
 		error("AMDSMI: Failed to get power: %s", status_string);
 		gpu->energy.current_watts = NO_VAL;
 		return SLURM_ERROR;
 	}
 
-	gpu->last_update_watt = curr_milli_watts/1000000;
+	gpu->last_update_watt = power_info.average_socket_power / 1000.0;
 	gpu->previous_update_time = gpu->last_update_time;
 	gpu->last_update_time = time(NULL);
 
@@ -1056,14 +1115,14 @@ extern int gpu_p_usage_read(pid_t pid, acct_gather_data_t *data)
 		return SLURM_SUCCESS;
 	}
 
-	rc = amdsmi_compute_process_info_by_pid_get(pid, &proc);
+	rc = amdsmi_get_gpu_compute_process_info_by_pid(pid, &proc);
 
 	if (rc == AMDSMI_STATUS_NOT_FOUND) {
 		debug2("Couldn't find pid %d, probably hasn't started yet or has already finished",
 		       pid);
 		return SLURM_SUCCESS;
 	} else if (rc != AMDSMI_STATUS_SUCCESS) {
-		(void) amdsmi_status_string(rc, &status_string);
+		(void) amdsmi_status_code_to_string(rc, &status_string);
 		error("AMDSMI: Failed to get usage(%d): %s", rc, status_string);
 		return SLURM_ERROR;
 	}
