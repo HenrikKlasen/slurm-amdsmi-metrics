@@ -738,7 +738,7 @@ static void _amdsmi_get_device_minor_number(uint32_t dv_ind,
 					  unsigned int *minor)
 {
 	const char *status_string;
-	amdsmi_status_t amdsmi_rc = amdsmi_dev_drm_render_minor_get(dv_ind, minor);
+	amdsmi_status_t amdsmi_rc = amdsmi_get_gpu_device_bdf(dv_ind, minor);
 
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
 		amdsmi_rc = amdsmi_status_string(amdsmi_rc, &status_string);
