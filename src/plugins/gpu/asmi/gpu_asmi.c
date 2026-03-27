@@ -384,12 +384,17 @@ static bool _amdsmi_set_freqs(uint32_t dv_ind, uint64_t mem_bitmask,
 	const char *status_string;
 	amdsmi_status_t amdsmi_rc;
 
+	if (dv_ind >= processor_handle_count) {
+		error("AMDSMI: Invalid device index %u (max %u)", dv_ind, processor_handle_count);
+		return false;
+	}
+
 	DEF_TIMERS;
 	START_TIMER;
-	amdsmi_rc = amdsmi_dev_gpu_clk_freq_set(
-		dv_ind, AMDSMI_CLK_TYPE_MEM, mem_bitmask);
+	amdsmi_rc = amdsmi_set_gpu_clk_limit(processor_handles[dv_ind],
+		AMDSMI_CLK_TYPE_MEM, mem_bitmask);
 	END_TIMER;
-	debug3("amdsmi_dev_gpu_clk_freq_set(0x%lx) for memory took %s",
+	debug3("amdsmi_set_gpu_clk_limit(0x%lx) for memory took %s",
 	       mem_bitmask, TIMER_STR());
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
 		amdsmi_rc = amdsmi_status_code_to_string(amdsmi_rc, &status_string);
@@ -399,9 +404,9 @@ static bool _amdsmi_set_freqs(uint32_t dv_ind, uint64_t mem_bitmask,
 	}
 
 	START_TIMER;
-	amdsmi_rc = amdsmi_dev_gpu_clk_freq_set(dv_ind,
+	amdsmi_rc = amdsmi_set_gpu_clk_limit(processor_handles[dv_ind],
 					    AMDSMI_CLK_TYPE_SYS, gfx_bitmask);
-	debug3("amdsmi_dev_gpu_clk_freq_set(0x%lx) for graphics took %s",
+	debug3("amdsmi_set_gpu_clk_limit(0x%lx) for graphics took %s",
 	       gfx_bitmask, TIMER_STR());
 	END_TIMER;
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
@@ -427,12 +432,18 @@ static bool _amdsmi_reset_freqs(uint32_t dv_ind)
 	const char *status_string;
 	amdsmi_status_t amdsmi_rc;
 
+	if (dv_ind >= processor_handle_count) {
+		error("AMDSMI: Invalid device index %u (max %u)", dv_ind, processor_handle_count);
+		return false;
+	}
+
 	DEF_TIMERS;
 
 	START_TIMER;
-	amdsmi_rc = amdsmi_dev_perf_level_set(dv_ind, AMDSMI_DEV_PERF_LEVEL_AUTO);
+	amdsmi_rc = amdsmi_set_gpu_perf_level(processor_handles[dv_ind], 
+		AMDSMI_DEV_PERF_LEVEL_AUTO);
 	END_TIMER;
-	debug3("amdsmi_dev_perf_level_set() took %s", TIMER_STR());
+	debug3("amdsmi_set_gpu_perf_level() took %s", TIMER_STR());
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
 		amdsmi_rc = amdsmi_status_code_to_string(amdsmi_rc, &status_string);
 		error("AMDSMI: Failed to reset frequencies error: %s",
@@ -672,7 +683,7 @@ static void _set_freq(bitstr_t *gpus, char *gpu_freq)
  */
 static void _amdsmi_get_driver(char *driver, unsigned int len)
 {
-	amdsmi_version_str_get(AMDSMI_SW_COMP_DRIVER, driver, len);
+	amdsmi_get_lib_version_string(AMDSMI_SW_COMP_DRIVER, driver, len);
 }
 
 /*
