@@ -39,7 +39,7 @@
 #define _GNU_SOURCE
 
 #include <dlfcn.h>
-#include <amdsmi/amdsmi.h>
+#include <amd_smi/amdsmi.h>
 
 #include "../common/gpu_common.h"
 
@@ -767,6 +767,7 @@ static void _amdsmi_get_device_name(uint32_t dv_ind, char *device_name,
 	}
 	strncpy(device_name, asic_info.asic_type, size - 1);
 	device_name[size - 1] = '\0';
+}
 
 /*
  * Get the brand of the GPU
@@ -790,6 +791,7 @@ static void _amdsmi_get_device_brand(uint32_t dv_ind, char *device_brand,
 	}
 	strncpy(device_brand, asic_info.asic_type, size - 1);
 	device_brand[size - 1] = '\0';
+}
 
 /*
  * Retrieves minor number of the render device. Each AMD GPU will have a device node file
