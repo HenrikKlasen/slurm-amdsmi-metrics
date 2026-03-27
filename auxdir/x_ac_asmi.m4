@@ -43,9 +43,9 @@ AC_DEFUN([X_AC_ASMI],
       AS_UNSET([ac_cv_header_amdsmi_amdsmi_h])
       AS_UNSET([ac_cv_lib_amd_smi64_amdsmi_init])
       AS_UNSET([ac_cv_lib_amd_smi64_amdsmi_dev_drm_render_minor_get])
-      AC_CHECK_HEADER([amdsmi/amdsmi.h], [ac_asmi_h=yes], [ac_asmi_h=no])
+      AC_CHECK_HEADER([amd_smi/amdsmi.h], [ac_asmi_h=yes], [ac_asmi_h=no])
       AC_CHECK_LIB([amd_smi64], [amdsmi_init], [ac_asmi_l=yes], [ac_asmi_l=no])
-      AC_CHECK_LIB([amd_smi64], [amdsmi_dev_drm_render_minor_get], [ac_asmi_version=yes], [ac_asmi_version=no])
+      AC_CHECK_LIB([amd_smi64], [amdsmi_get_gpu_device_bdf], [ac_asmi_version=yes], [ac_asmi_version=no])
       CPPFLAGS="$cppflags_save"
       LDFLAGS="$ldflags_save"
       if test "$ac_asmi_l" = "yes" && test "$ac_asmi_h" = "yes"; then

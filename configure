@@ -26157,12 +26157,12 @@ printf "%s\n" "" >&6; }
     for _x_ac_asmi_dir in $_x_ac_asmi_dirs; do
       cppflags_save="$CPPFLAGS"
       ldflags_save="$LDFLAGS"
-      ASMI_CPPFLAGS="-I$_x_ac_asmi_dir/include"
-      CPPFLAGS="$ASMI_CPPFLAGS"
+      ASMI_FLAGS="-I$_x_ac_asmi_dir/include"
+      CPPFLAGS="$ASMI_FLAGS"
       ASMI_LIB_DIR="$_x_ac_asmi_dir/lib"
       LDFLAGS="-L$ASMI_LIB_DIR"
       { ac_cv_header_amd_smi_h=; unset ac_cv_header_amd_smi_h;}
-      { ac_cv_lib_rocm_smi64_asmi_init=; unset ac_cv_lib_rocm_smi64_rsmi_init;}
+      { ac_cv_lib_rocm_smi64_asmi_init=; unset ac_cv_lib_rocm_smi64_asmi_init;}
       { ac_cv_lib_rocm_smi64_asmi_get_gpu_device_bdf=; unset ac_cv_lib_rocm_smi64_asmi_get_gpu_device_bdf;}
       ac_fn_c_check_header_compile "$LINENO" "amd_smi/amdsmi.h" "ac_cv_header_rocm_smi_asmi_h" "$ac_includes_default"
 if test "x$ac_cv_header_rocm_smi_asmi_h" = xyes
