@@ -1,5 +1,5 @@
 /*****************************************************************************\
- *  gpu_rsmi.c - Support rsmi interface to an AMD GPU.
+ *  gpu_amdsmi.c - Support amdsmi interface to an AMD GPU.
  *****************************************************************************
  *  Copyright (C) SchedMD LLC.
  *  Copyright (c) 2019, Advanced Micro Devices, Inc. All rights reserved.
@@ -54,7 +54,7 @@
 static bitstr_t	*saved_gpus;
 
 /*
- * Buffer size large enough for RSMI string
+ * Buffer size large enough for AMDSMI string
  */
 #define AMDSMI_STRING_BUFFER_SIZE			80
 
@@ -101,7 +101,7 @@ static void _amdsmi_get_driver(char *driver, unsigned int len);
 /*
  * Initialize the amd-smi library.
  */
-static void _rsmi_init()
+static void _amdsmi_init()
 {
 	static pid_t init_pid = 0;
 	pid_t my_pid = conf->pid ? conf->pid : getpid();
@@ -173,12 +173,12 @@ static bool _amdsmi_get_mem_freqs(uint32_t dv_ind, uint32_t *mem_freqs_size,
 	amdsmi_rc = amdsmi_dev_gpu_clk_freq_get(
 		dv_ind, AMDSMI_CLK_TYPE_MEM, &amdsmi_freqs);
 	END_TIMER;
-	debug3("rsmi_dev_gpu_clk_freq_get() took %s",
+	debug3("amdsmi_dev_gpu_clk_freq_get() took %s",
 	       TIMER_STR());
 
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
 		amdsmi_rc = amdsmi_status_string(amdsmi_rc, &status_string);
-		error("RSMI: Failed to get memory frequencies error: %s",
+		error("AMDSMI: Failed to get memory frequencies error: %s",
 		      status_string);
 		return false;
 	}
@@ -378,7 +378,7 @@ static bool _amdsmi_set_freqs(uint32_t dv_ind, uint64_t mem_bitmask,
 	END_TIMER;
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
 		amdsmi_rc = amdsmi_status_string(amdsmi_rc, &status_string);
-		error("RSMI: Failed to set graphic frequency GPU %u error: %s",
+		error("AMDSMI: Failed to set graphics frequency GPU %u error: %s",
 		      dv_ind, status_string);
 		return false;
 	}
@@ -407,7 +407,7 @@ static bool _amdsmi_reset_freqs(uint32_t dv_ind)
 	debug3("amdsmi_dev_perf_level_set() took %s", TIMER_STR());
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
 		amdsmi_rc = amdsmi_status_string(amdsmi_rc, &status_string);
-		error("RSMI: Failed to reset frequencies error: %s",
+		error("AMDSMI: Failed to reset frequencies error: %s",
 		      status_string);
 		return false;
 	}
@@ -419,8 +419,8 @@ static bool _amdsmi_reset_freqs(uint32_t dv_ind)
  * at
  *
  * dv_ind	(IN) The device index
- * type		(IN) The clock type to query. Either RSMI_CLK_TYPE_SYS or
- *		RSMI_CLK_TYPE_MEM.
+ * type		(IN) The clock type to query. Either AMDSMI_CLK_TYPE_SYS or
+ *		AMDSMI_CLK_TYPE_MEM.
  *
  * Returns the clock frequency in MHz if successful, or 0 if not
  */
@@ -448,10 +448,10 @@ static uint32_t _amdsmi_get_freq(uint32_t dv_ind, amdsmi_clk_type_t type)
 	START_TIMER;
 	amdsmi_rc = amdsmi_dev_gpu_clk_freq_get(dv_ind, type, &amdsmi_freqs);
 	END_TIMER;
-	debug3("rsmi_dev_gpu_clk_freq_get(%s) took %s", type_str, TIMER_STR());
+	debug3("amdsmi_dev_gpu_clk_freq_get(%s) took %s", type_str, TIMER_STR());
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
 		amdsmi_rc = amdsmi_status_string(amdsmi_rc, &status_string);
-		error("RSMI: Failed to get the GPU frequency type %s, error: %s",
+		error("AMDSMI: Failed to get the GPU frequency type %s, error: %s",
 		      type_str, status_string);
 		return 0;
 	}
@@ -470,7 +470,7 @@ static uint32_t _amdsmi_get_mem_freq(uint32_t dv_ind)
 
 /*
  * Reset the frequencies of each GPU in the step to the hardware default
- * NOTE: RSMI must be initialized beforehand
+ * NOTE: AMDSMI must be initialized beforehand
  *
  * gpus		(IN) A bitmap specifying the GPUs on which to operate.
  */
@@ -490,7 +490,7 @@ static void _reset_freq(bitstr_t *gpus)
 		       _amdsmi_get_mem_freq(i));
 		debug2("Graphics frequency before reset: %u",
 		       _amdsmi_get_gfx_freq(i));
-		freq_reset = _rsmi_reset_freqs(i);
+		freq_reset = _amdsmi_reset_freqs(i);
 		debug2("Memory frequency after reset: %u",
 		       _amdsmi_get_mem_freq(i));
 		debug2("Graphics frequency after reset: %u",
@@ -514,7 +514,7 @@ static void _reset_freq(bitstr_t *gpus)
 
 /*
  * Set the frequencies of each GPU specified for the step
- * NOTE: RSMI must be initialized beforehand
+ * NOTE: AMDSMI must be initialized beforehand
  *
  * gpus		(IN) A bitmap specifying the GPUs on which to operate.
  * gpu_freq	(IN) The frequencies to set each of the GPUs to. If a NULL or
@@ -582,7 +582,7 @@ static void _set_freq(bitstr_t *gpus, char *gpu_freq)
 
 		// Only check the global GPU bitstring if not using cgroups
 		if (!cgroups_active && !bit_test(gpus, i)) {
-			debug2("Passing over RSMI device %u", i);
+			debug2("Passing over AMDSMI device %u", i);
 			continue;
 		}
 		count++;
@@ -645,8 +645,8 @@ static void _amdsmi_get_driver(char *driver, unsigned int len)
 /*
  * Get the version of the ROCM-SMI library
  *
- * version	(OUT) A string to return version of RSMI
- * len		(OUT) Length for version of RSMI
+ * version	(OUT) A string to return version of AMDSMI
+ * len		(OUT) Length for version of AMDSMI
  */
 static void _amdsmi_get_version(char *version, unsigned int len)
 {
@@ -663,7 +663,7 @@ static void _amdsmi_get_version(char *version, unsigned int len)
 		snprintf(version, len, "%s", amdsmi_version.build);
 		if (amdsmi_version.major < AMDSMI_REQ_VERSION_USAGE) {
 			get_usage = false;
-			error("%s: GPU usage accounting disabled. RSMI version >= 6.0.0 required.",
+			error("%s: GPU usage accounting disabled. AMDSMI version >= 6.0.0 required.",
 			      __func__);
 		}
 	}
@@ -681,7 +681,7 @@ extern void gpu_p_get_device_count(uint32_t *device_count)
 
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
 		amdsmi_rc = amdsmi_status_string(amdsmi_rc, &status_string);
-		error("RSMI: Failed to get device count: %s", status_string);
+		error("AMDSMI: Failed to get device count: %s", status_string);
 		*device_count = 0;
 	}
 }
@@ -701,7 +701,7 @@ static void _amdsmi_get_device_name(uint32_t dv_ind, char *device_name,
 
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
 		amdsmi_rc = amdsmi_status_string(amdsmi_rc, &status_string);
-		error("RSMI: Failed to get name of the GPU: %s", status_string);
+		error("AMDSMI: Failed to get name of the GPU: %s", status_string);
 	}
 	gpu_common_underscorify_tolower(device_name);
 }
@@ -742,7 +742,7 @@ static void _amdsmi_get_device_minor_number(uint32_t dv_ind,
 
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
 		amdsmi_rc = amdsmi_status_string(amdsmi_rc, &status_string);
-		error("RSMI: Failed to get minor number of GPU: %s",
+		error("AMDSMI: Failed to get minor number of GPU: %s",
 		      status_string);
 	}
 }
@@ -756,11 +756,11 @@ static void _amdsmi_get_device_minor_number(uint32_t dv_ind,
 static void _amdsmi_get_device_pci_info(uint32_t dv_ind, amdsmiPciInfo_t *pci)
 {
 	const char *status_string;
-	amdsmi_status_t amdsmi_rc = amdsmi_dev_pci_id_get(dv_ind, &(pci->bdfid));
+	amdsmi_status_t amdsmi_rc = amdsmi_get_gpu_bdf_id(dv_ind, &pci->bdfid);
 
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
 		amdsmi_rc = amdsmi_status_string(amdsmi_rc, &status_string);
-		error("RSMI: Failed to get PCI Info of the GPU: %s",
+		error("AMDSMI: Failed to get PCI Info of the GPU: %s",
 		      status_string);
 	}
 }
@@ -778,7 +778,7 @@ static void _amdsmi_get_device_unique_id(uint32_t dv_ind, uint64_t *id)
 
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
 		amdsmi_rc = amdsmi_status_string(amdsmi_rc, &status_string);
-		error("RSMI: Failed to get Unique ID of the GPU: %s",
+		error("AMDSMI: Failed to get Unique ID of the GPU: %s",
 		      status_string);
 	}
 }
@@ -1012,12 +1012,12 @@ extern int gpu_p_energy_read(uint32_t dv_ind, gpu_status_t *gpu)
 {
 	const char *status_string;
 	uint64_t curr_milli_watts;
-	amdsmi_status_t rsmi_rc = amdsmi_dev_power_ave_get(
+	amdsmi_status_t amdsmi_rc = amdsmi_dev_power_ave_get(
 		dv_ind, 0, &curr_milli_watts);
 
 	if (amdsmi_rc != AMDSMI_STATUS_SUCCESS) {
 		amdsmi_rc = amdsmi_status_string(amdsmi_rc, &status_string);
-		error("RSMI: Failed to get power: %s", status_string);
+		error("AMDSMI: Failed to get power: %s", status_string);
 		gpu->energy.current_watts = NO_VAL;
 		return SLURM_ERROR;
 	}
@@ -1047,7 +1047,7 @@ extern int gpu_p_usage_read(pid_t pid, acct_gather_data_t *data)
 	_amdsmi_init();
 
 	/*
-	 * If version < RSMI_REQ_VERSION_USAGE get_usage will be set to
+	 * If version < AMDSMI_REQ_VERSION_USAGE get_usage will be set to
 	 * false, so we won't set gpumem_pos and gpuutil_pos which
 	 * effectively disables gpu accounting.
 	 */
@@ -1064,7 +1064,7 @@ extern int gpu_p_usage_read(pid_t pid, acct_gather_data_t *data)
 		return SLURM_SUCCESS;
 	} else if (rc != AMDSMI_STATUS_SUCCESS) {
 		(void) amdsmi_status_string(rc, &status_string);
-		error("RSMI: Failed to get usage(%d): %s", rc, status_string);
+		error("AMDSMI: Failed to get usage(%d): %s", rc, status_string);
 		return SLURM_ERROR;
 	}
 
