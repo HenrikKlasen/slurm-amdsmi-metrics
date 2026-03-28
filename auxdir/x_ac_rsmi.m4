@@ -45,9 +45,9 @@ AC_DEFUN([X_AC_RSMI],
       AS_UNSET([ac_cv_header_rocm_smi_h])
       AS_UNSET([ac_cv_lib_rocm_smi64_rsmi_init])
       AS_UNSET([ac_cv_lib_rocm_smi64_dev_drm_render_minor_get])
-      AC_CHECK_HEADER([rocm_smi/rocm_smi.h], [ac_rsmi_h=yes], [ac_rsmi_h=no])
-      AC_CHECK_LIB([rocm_smi64], [rsmi_init], [ac_rsmi_l=yes], [ac_rsmi_l=no])
-      AC_CHECK_LIB([rocm_smi64], [rsmi_dev_drm_render_minor_get], [ac_rsmi_version=yes], [ac_rsmi_version=no])
+      AC_CHECK_HEADER([amd_smi/amdsmi.h], [ac_rsmi_h=yes], [ac_rsmi_h=no])
+      AC_CHECK_LIB([amd_smi], [amdsmi_init], [ac_rsmi_l=yes], [ac_rsmi_l=no])
+      AC_CHECK_LIB([amd_smi], [amdsmi_get_gpu_device_bdf], [ac_rsmi_version=yes], [ac_rsmi_version=no])
       CPPFLAGS="$cppflags_save"
       LDFLAGS="$ldflags_save"
       if test "$ac_rsmi_l" = "yes" && test "$ac_rsmi_h" = "yes"; then
